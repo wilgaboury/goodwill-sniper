@@ -68,7 +68,7 @@ class SniperCLI(object):
         try:
             utils.send_msg("close")
             print('Sniper process successfully closed')
-        except ConnectionRefusedError as e:
+        except ConnectionRefusedError:
             print('Sniper process has already been closed')
 
         conn, c = utils.get_conn()
@@ -78,7 +78,17 @@ class SniperCLI(object):
         conn.close()
 
     def create(self):
-        return None
+        parser = argparse.ArgumentParser(description='Create new item to snipe')
+        parser.add_argument('-i', '--item', action='store', type=int, required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        
+
+        conn, c = utils.get_conn()
+        c.execute('INSERT INTO listing(item_id, name, ending_dt) VALUES(?,?,?)')
+        conn.commit()
+        c.close()
+        conn.close()
 
     def delete(self):
         return None

@@ -12,10 +12,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from apscheduler.schedulers.background import BackgroundScheduler
 
-conn, c = utils.get_conn()
-
 init_config = json.loads(open('config.json', 'r').read())
 scheduler = BackgroundScheduler()
+jobs = {}
 
 def perform_snipe(item_id, listing_dt):
     try:
@@ -40,7 +39,7 @@ def perform_snipe(item_id, listing_dt):
         pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
 
         driver.find_element_by_id('placeBid').click()
-        driver.find_element_by_id('place-bid-modal').click()
+        # driver.find_element_by_id('place-bid-modal').click()
 
     except Exception as e:
         print("Sniping item #" + str(item_id) + " failed")
@@ -48,24 +47,41 @@ def perform_snipe(item_id, listing_dt):
     else:
         print("sniped item #" + str(item_id))
 
-c.execute("SELECT * FROM listings")
-listings = c.fetchall()
-for listing in listings:
-    listing_dt = listings['ending_dt']
+def add_job(listing):
+    listing_dt = listing['ending_dt']
     listing_dt = listing_dt - datetime.timedelta(minutes=1, seconds=init_config['bid_before_seconds'])
-    scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['listing_dt']])
+    job = scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['listing_dt']], id=listing['item_id'])
+    jobs[listing['item_id']] = {'job': job, 'listing': listing}
 
+def load_jobs():
+    conn, c = utils.get_conn()
+    c.execute("SELECT * FROM listings")
+    listings = c.fetchall()
+    for listing in listings:
+        add_job(listing)
+    c.close()
+    conn.close()
+
+def remove_jobs():
+    for job_entry in list(jobs.values):
+        job_entry['job'].remove()
+    jobs.clear()
+
+load_jobs()
 scheduler.start()
 
-c.close()
-conn.close()
-
+# listen for events from cli
 listener = Listener(('localhost', 6000))
 connection = listener.accept()
 while True:
-    msg = connection.recv()
-    # do something with msg
+    msg, data = connection.recv()
+
     if msg == 'close':
         connection.close()
+        scheduler.shutdown()
         break
+    elif msg == 'update':
+        remove_jobs()
+        load_jobs()
+
 listener.close()
