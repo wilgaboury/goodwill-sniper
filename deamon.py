@@ -2,6 +2,8 @@ import sqlite3
 import json
 import datetime
 import pause
+import utils
+from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
@@ -10,8 +12,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from apscheduler.schedulers.background import BackgroundScheduler
 
-conn = sqlite3.connect('sniper.db')
-c = conn.cursor()
+conn, c = utils.get_conn()
+
 init_config = json.loads(open('config.json', 'r').read())
 scheduler = BackgroundScheduler()
 
@@ -46,11 +48,24 @@ def perform_snipe(item_id, listing_dt):
     else:
         print("sniped item #" + str(item_id))
 
-c.execute("select * from listings")
+c.execute("SELECT * FROM listings")
 listings = c.fetchall()
 for listing in listings:
-    listing_dt = listings.ending_dt
+    listing_dt = listings['ending_dt']
     listing_dt = listing_dt - datetime.timedelta(minutes=1, seconds=init_config['bid_before_seconds'])
-    scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing.item_id, listing.listing_dt])
+    scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['listing_dt']])
 
 scheduler.start()
+
+c.close()
+conn.close()
+
+listener = Listener(('localhost', 6000))
+connection = listener.accept()
+while True:
+    msg = connection.recv()
+    # do something with msg
+    if msg == 'close':
+        connection.close()
+        break
+listener.close()

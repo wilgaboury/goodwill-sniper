@@ -15,11 +15,17 @@ parser = argparse.ArgumentParser(description='Sniper for Goodwill Website')
 parser.add_argument('command', choices=FUNCTION_MAP.keys())
 args = parser.parse_args()
 
-#init database
-conn = sqlite3.connect('sniper.db')
-c = conn.cursor()
-if len(c.execute("select * from sqlite_master where type = 'table'")) == 0:
+# init database
+conn, c = utils.get_conn()
+c.execute("SELECT * FROM sqlite_master WHERE type = 'table' AND (name = 'listings' OR name = 'process')")
+tables = c.fetchall()
+if len(tables) != 2:
+    print('initializing database')
     sql = open('init_database.sql', 'r').read()
-    c.execute(sql)
+    c.executescript(sql)
+    conn.commit()
+c.close()
+conn.close()
 
+# run user specified function
 FUNCTION_MAP[args.command](args)
