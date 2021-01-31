@@ -10,7 +10,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 conn = sqlite3.connect('sniper.db')
 c = conn.cursor()
+init_config = json.loads(open('config.json', 'r').read())
+scheduler = BackgroundScheduler()
 
 listings = c.execute("select * from listings")
 
-config = json.loads(open('config.json', 'r').read())
+for listing in listings:
+    
