@@ -4,6 +4,7 @@ import datetime
 import pause
 import utils
 import math
+import socket
 from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.keys import Keys
@@ -73,7 +74,7 @@ def load_jobs():
     conn.close()
 
 def remove_jobs():
-    for job_entry in list(jobs.values):
+    for job_entry in list(jobs.values()):
         job_entry['job'].remove()
     jobs.clear()
 
@@ -81,17 +82,32 @@ load_jobs()
 scheduler.start()
 
 # listen for events from cli
-listener = Listener(('localhost', 6000))
-connection = listener.accept()
+# listener = Listener(('localhost', 6000))
+# connection = listener.accept()
+# while True:
+#     msg = connection.recv()
+
+#     if msg == 'close':
+#         connection.close()
+#         listener.close()
+#         scheduler.shutdown()
+#         break
+#     elif msg == 'update':
+#         remove_jobs()
+#         load_jobs()
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind(('127.0.0.1', 6000))
+s.listen()
+conn, addr = s.accept()
 while True:
-    msg, data = connection.recv()
+    msg = conn.recv(1024).decode('ascii')
 
     if msg == 'close':
-        connection.close()
+        s.close()
         scheduler.shutdown()
         break
     elif msg == 'update':
         remove_jobs()
         load_jobs()
-
-listener.close()

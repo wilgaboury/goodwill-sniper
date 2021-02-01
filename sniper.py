@@ -59,7 +59,7 @@ class SniperCLI(object):
             pid = proc.pid
             c.execute('INSERT INTO process(pid) VALUES(?)', (pid,))
             conn.commit()
-            print('Sniper process succcessfully started')
+            print('Sniper process succcessfully started with PID ' + str(pid))
 
         c.close()
         conn.close()
@@ -86,7 +86,7 @@ class SniperCLI(object):
         item_data = utils.retreive_listing_information(args.item)
 
         conn, c = utils.get_conn()
-        c.execute('INSERT INTO listing(item_id, max_bid, name, ending_dt) VALUES(?,?,?,?)', (args.item, args.max, item_data['name'], item_data['ending_dt']))
+        c.execute('INSERT INTO listings(item_id, max_bid, name, ending_dt) VALUES(?,?,?,?)', (args.item, args.max, item_data['name'], item_data['ending_dt']))
         conn.commit()
         c.close()
         conn.close()
@@ -131,7 +131,7 @@ class SniperCLI(object):
         c.execute('SELECT * FROM listings')
         listings = c.fetchall()
         for listing in listings:
-            print('https://www.shopgoodwill.com/Item/' + str(listing['item_id'] + 'Name: ' + str(listings['name']) + ', Max Bid: ' str(listings['max_bid'])))
+            print('https://www.shopgoodwill.com/Item/' + str(listing['item_id'] + 'Name: ' + str(listings['name']) + ', Max Bid: ' + str(listings['max_bid'])))
 
         c.close()
         conn.close()

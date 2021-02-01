@@ -5,10 +5,10 @@ import os
 import psutil
 import re
 import pytz
+import socket
 from tzlocal import get_localzone
 from dateutil.parser import parse
 from multiprocessing.connection import Client
-from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
@@ -22,20 +22,27 @@ def get_conn():
     conn.row_factory = sqlite3.Row
     return (conn, conn.cursor())
 
-def send_msg_with_data(msg, data):
-    connection = Client(('localhost', 6000))
-    connection.send((msg, data))
-    connection.close()
+# def send_msg(msg):
+#     connection = Client(('localhost', 6000))
+#     connection.sendall(msg)
+#     connection.close()
 
 def send_msg(msg):
-    send_msg_with_data(msg, None)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(('localhost', 6000))
+    s.sendall(msg.encode())
+    s.close()
 
 def retreive_listing_information(item_id):
     driver = Firefox()
     driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
-    name = driver.find_element_by_css_selector('.product-title').getAttribute('innerHTML')
 
-    ending_dt_raw = driver.find_element_by_class_name('.product-data>li:last-child').getAttribute('innerHTML')
+    driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
+
+    name = driver.find_element_by_css_selector('.product-title').get_attribute('innerHTML')
+    ending_dt_raw = driver.find_element_by_css_selector('.product-data>li:last-child').get_attribute('innerHTML')
+    driver.quit()
+
     pattern = re.compile("<b>.*<\\/b>(.*) Pacific Time")
     matcher = pattern.search(ending_dt_raw)
     ending_dt_str = matcher.group(1)
