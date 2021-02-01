@@ -39,7 +39,13 @@ def perform_snipe(item_id, listing_dt):
         pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
 
         driver.find_element_by_id('placeBid').click()
-        # driver.find_element_by_id('place-bid-modal').click()
+        driver.find_element_by_id('place-bid-modal').click()
+
+        if driver.find_element_by_id('bid-result').get_attribute('innerHTML').find('You have already been outbid.') == -1:
+            driver.find_element_by_xpath('')
+            continue
+        else:
+            break
 
     except Exception as e:
         print("Sniping item #" + str(item_id) + " failed")
