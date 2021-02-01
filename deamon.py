@@ -83,6 +83,7 @@ load_jobs()
 scheduler.start()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('localhost', init_config['port']))
     s.listen()
     conn, addr = s.accept()
@@ -90,9 +91,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         msg = conn.recv(1024).decode('ascii')
 
         if msg == 'close':
-            s.close()
             scheduler.shutdown()
-            break
+            exit()
         elif msg == 'update':
             remove_jobs()
             load_jobs()
