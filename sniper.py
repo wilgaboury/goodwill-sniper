@@ -98,7 +98,7 @@ class SniperCLI(object):
         args = parser.parse_args(sys.argv[2:])
 
         conn, c = utils.get_conn()
-        c.execute('DELETE FROM listings WHERE item_id=?', (args.item))
+        c.execute('DELETE FROM listings WHERE item_id=?', (args.item,))
         conn.commit()
         c.close()
         conn.close()
@@ -131,7 +131,7 @@ class SniperCLI(object):
         c.execute('SELECT * FROM listings')
         listings = c.fetchall()
         for listing in listings:
-            print('https://www.shopgoodwill.com/Item/' + str(listing['item_id'] + 'Name: ' + str(listings['name']) + ', Max Bid: ' + str(listings['max_bid'])))
+            print(str(listing['name']) + ' | Max Bid: ' + str(listing['max_bid']) + ' | URL: ' + 'https://www.shopgoodwill.com/Item/' + str(listing['item_id']))
 
         c.close()
         conn.close()

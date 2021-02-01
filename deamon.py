@@ -5,6 +5,7 @@ import pause
 import utils
 import math
 import socket
+from dateutil.parser import parse
 from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.keys import Keys
@@ -59,14 +60,14 @@ def perform_snipe(item_id, max_bid, listing_dt):
         print("sniped item #" + str(item_id))
 
 def add_job(listing):
-    listing_dt = listing['ending_dt']
-    listing_dt = listing_dt - datetime.timedelta(minutes=1, seconds=init_config['bid_before_seconds'])
-    job = scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['max_bid'], listing['listing_dt']], id=listing['item_id'])
-    jobs[listing['item_id']] = {'job': job, 'listing': listing}
+    listing_dt = parse(listing['ending_dt'])
+    job_dt = listing_dt - datetime.timedelta(minutes=1, seconds=init_config['bid_before_seconds'])
+    job = scheduler.add_job(perform_snipe, 'date', run_date=job_dt, args=[listing['item_id'], listing['max_bid'], listing_dt], id=str(listing['item_id']))
+    jobs[str(listing['item_id'])] = {'job': job, 'listing': listing}
 
 def load_jobs():
     conn, c = utils.get_conn()
-    c.execute("SELECT * FROM listings")
+    c.execute('SELECT * FROM listings')
     listings = c.fetchall()
     for listing in listings:
         add_job(listing)
@@ -81,33 +82,17 @@ def remove_jobs():
 load_jobs()
 scheduler.start()
 
-# listen for events from cli
-# listener = Listener(('localhost', 6000))
-# connection = listener.accept()
-# while True:
-#     msg = connection.recv()
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind(('localhost', init_config['port']))
+    s.listen()
+    conn, addr = s.accept()
+    while True:
+        msg = conn.recv(1024).decode('ascii')
 
-#     if msg == 'close':
-#         connection.close()
-#         listener.close()
-#         scheduler.shutdown()
-#         break
-#     elif msg == 'update':
-#         remove_jobs()
-#         load_jobs()
-
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('127.0.0.1', 6000))
-s.listen()
-conn, addr = s.accept()
-while True:
-    msg = conn.recv(1024).decode('ascii')
-
-    if msg == 'close':
-        s.close()
-        scheduler.shutdown()
-        break
-    elif msg == 'update':
-        remove_jobs()
-        load_jobs()
+        if msg == 'close':
+            s.close()
+            scheduler.shutdown()
+            break
+        elif msg == 'update':
+            remove_jobs()
+            load_jobs()

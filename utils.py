@@ -6,6 +6,7 @@ import psutil
 import re
 import pytz
 import socket
+import json
 from tzlocal import get_localzone
 from dateutil.parser import parse
 from multiprocessing.connection import Client
@@ -17,21 +18,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from apscheduler.schedulers.background import BackgroundScheduler
 
+init_config = json.loads(open('config.json', 'r').read())
+
 def get_conn():
     conn = sqlite3.connect('sniper.db')
     conn.row_factory = sqlite3.Row
     return (conn, conn.cursor())
 
-# def send_msg(msg):
-#     connection = Client(('localhost', 6000))
-#     connection.sendall(msg)
-#     connection.close()
-
 def send_msg(msg):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('localhost', 6000))
-    s.sendall(msg.encode())
-    s.close()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('localhost', init_config['port']))
+        s.sendall(msg.encode())
 
 def retreive_listing_information(item_id):
     driver = Firefox()
