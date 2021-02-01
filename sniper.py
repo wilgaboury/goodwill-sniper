@@ -80,21 +80,50 @@ class SniperCLI(object):
     def create(self):
         parser = argparse.ArgumentParser(description='Create new item to snipe')
         parser.add_argument('-i', '--item', action='store', type=int, required=True)
+        parser.add_argument('-m', '--max', action='store', type=int, required=True)
         args = parser.parse_args(sys.argv[2:])
 
-        
+        item_data = utils.retreive_listing_information(args.item)
 
         conn, c = utils.get_conn()
-        c.execute('INSERT INTO listing(item_id, name, ending_dt) VALUES(?,?,?)')
+        c.execute('INSERT INTO listing(item_id, max_bid, name, ending_dt) VALUES(?,?,?,?)', (args.item, args.max, item_data['name'], item_data['ending_dt']))
         conn.commit()
         c.close()
         conn.close()
 
+
     def delete(self):
-        return None
+        parser = argparse.ArgumentParser(description='Delete an item from sniping list')
+        parser.add_argument('-i', '--item', action='store', type=int, required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        conn, c = utils.get_conn()
+        c.execute('DELETE FROM listings WHERE item_id=?', (args.item))
+        conn.commit()
+        c.close()
+        conn.close()
+
+        try:
+            utils.send_msg('update')
+        except ConnectionRefusedError:
+            pass
 
     def update(self):
-        return None
+        parser = argparse.ArgumentParser(description='Delete an item from sniping list')
+        parser.add_argument('-i', '--item', action='store', type=int, required=True)
+        parser.add_argument('-m', '--max', action='store', type=int, required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        conn, c = utils.get_conn()
+        c.execute('UPDATE listings SET max_bid=? WHERE item_id=?', (args.max, args.item))
+        conn.commit()
+        c.close()
+        conn.close()
+
+        try:
+            utils.send_msg('update')
+        except ConnectionRefusedError:
+            pass
 
     def list(self):
         conn, c = utils.get_conn()
@@ -102,9 +131,14 @@ class SniperCLI(object):
         c.execute('SELECT * FROM listings')
         listings = c.fetchall()
         for listing in listings:
-            print('https://www.shopgoodwill.com/Item/' + str(listing['item_id']))
+            print('https://www.shopgoodwill.com/Item/' + str(listing['item_id'] + 'Name: ' + str(listings['name']) + ', Max Bid: ' str(listings['max_bid'])))
 
         c.close()
         conn.close()
+
+        try:
+            utils.send_msg('update')
+        except ConnectionRefusedError:
+            pass
 
 SniperCLI()

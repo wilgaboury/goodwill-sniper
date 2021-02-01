@@ -3,6 +3,10 @@ import subprocess
 import signal
 import os
 import psutil
+import re
+import pytz
+from tzlocal import get_localzone
+from dateutil.parser import parse
 from multiprocessing.connection import Client
 from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
@@ -31,4 +35,14 @@ def retreive_listing_information(item_id):
     driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
     name = driver.find_element_by_css_selector('.product-title').getAttribute('innerHTML')
 
-    return {'name': name}
+    ending_dt_raw = driver.find_element_by_class_name('.product-data>li:last-child').getAttribute('innerHTML')
+    pattern = re.compile("<b>.*<\\/b>(.*) Pacific Time")
+    matcher = pattern.search(ending_dt_raw)
+    ending_dt_str = matcher.group(1)
+    ending_dt = parse(ending_dt_str)
+    tz = pytz.timezone('US/Pacific')
+    ending_dt = tz.localize(ending_dt)
+    ending_dt = ending_dt.astimezone(get_localzone())
+    ending_dt = ending_dt.replace(tzinfo=None)
+
+    return {'name': name, 'ending_dt': ending_dt}

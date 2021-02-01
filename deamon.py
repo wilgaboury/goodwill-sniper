@@ -3,6 +3,7 @@ import json
 import datetime
 import pause
 import utils
+import math
 from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.keys import Keys
@@ -16,7 +17,7 @@ init_config = json.loads(open('config.json', 'r').read())
 scheduler = BackgroundScheduler()
 jobs = {}
 
-def perform_snipe(item_id, listing_dt):
+def perform_snipe(item_id, max_bid, listing_dt):
     try:
         driver = Firefox()
         driver.get('https://www.shopgoodwill.com/SignIn')
@@ -28,23 +29,26 @@ def perform_snipe(item_id, listing_dt):
         driver.find_element_by_id('login-submit').click()
 
         driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
+
         minimum_bid = float(driver.find_element_by_css_selector('.minimum-bid').get_attribute('innerHTML')[1:])
-        bid_amount = minimum_bid + init_config['added_to_bid']
+        bid_amount = math.ceil(minimum_bid)
 
         driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
 
-        bid_input = driver.find_element_by_id('bidAmount')
-        bid_input.send_keys('{:.2f}'.format(round(bid_amount, 2)))
+        while True:
+            bid_input = driver.find_element_by_id('bidAmount')
+            bid_input.send_keys('{:.2f}'.format(round(bid_amount, 2)))
 
-        pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
+            pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
 
-        driver.find_element_by_id('placeBid').click()
-        driver.find_element_by_id('place-bid-modal').click()
+            driver.find_element_by_id('placeBid').click()
+            driver.find_element_by_id('place-bid-modal').click()
 
-        if driver.find_element_by_id('bid-result').get_attribute('innerHTML').find('You have already been outbid.') == -1:
-            driver.find_element_by_xpath('')
-            continue
-        else:
+            if driver.find_element_by_id('bid-result').get_attribute('innerHTML').find('You have already been outbid.') == -1:
+                driver.find_element_by_css_selector('.modal-footer button.btn.btn-default').click()
+                if bid_amount < max_bid:
+                    continue
+            
             break
 
     except Exception as e:
@@ -56,7 +60,7 @@ def perform_snipe(item_id, listing_dt):
 def add_job(listing):
     listing_dt = listing['ending_dt']
     listing_dt = listing_dt - datetime.timedelta(minutes=1, seconds=init_config['bid_before_seconds'])
-    job = scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['listing_dt']], id=listing['item_id'])
+    job = scheduler.add_job(perform_snipe, 'date', runtime=listing_dt, args=[listing['item_id'], listing['max_bid'], listing['listing_dt']], id=listing['item_id'])
     jobs[listing['item_id']] = {'job': job, 'listing': listing}
 
 def load_jobs():
