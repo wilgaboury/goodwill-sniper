@@ -11,6 +11,7 @@ from tzlocal import get_localzone
 from dateutil.parser import parse
 from multiprocessing.connection import Client
 from selenium.webdriver import Firefox
+from selenium.webdriver import FirefoxOptions
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
@@ -28,10 +29,12 @@ def get_conn():
 def send_msg(msg):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(('localhost', init_config['port']))
-        s.sendall(msg.encode())
+        s.sendall(msg.encode('ascii'))
 
 def retreive_listing_information(item_id):
-    driver = Firefox()
+    options = FirefoxOptions()
+    options.add_argument('-headless')
+    driver = Firefox(options=options)
     driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
 
     driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()

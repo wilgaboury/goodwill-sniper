@@ -32,26 +32,25 @@ def perform_snipe(item_id, max_bid, listing_dt):
 
         driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
 
+        driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
+
         minimum_bid = float(driver.find_element_by_css_selector('.minimum-bid').get_attribute('innerHTML')[1:])
         bid_amount = math.ceil(minimum_bid)
 
-        driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
+        pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
 
-        while True:
+        while bid_amount <= max_bid:
             bid_input = driver.find_element_by_id('bidAmount')
             bid_input.send_keys('{:.2f}'.format(round(bid_amount, 2)))
-
-            pause.until(listing_dt - datetime.timedelta(seconds=init_config['added_to_bid']))
 
             driver.find_element_by_id('placeBid').click()
             driver.find_element_by_id('place-bid-modal').click()
 
-            if driver.find_element_by_id('bid-result').get_attribute('innerHTML').find('You have already been outbid.') == -1:
+            if driver.find_element_by_id('bid-result').get_attribute('innerHTML').find('You have already been outbid.') >= 0:
+                break
+            else:
                 driver.find_element_by_css_selector('.modal-footer button.btn.btn-default').click()
-                if bid_amount < max_bid:
-                    continue
-            
-            break
+                bid_amount += 1
 
     except Exception as e:
         print("Sniping item #" + str(item_id) + " failed")
@@ -70,6 +69,7 @@ def load_jobs():
     c.execute('SELECT * FROM listings')
     listings = c.fetchall()
     for listing in listings:
+        # print(listing['name'])
         add_job(listing)
     c.close()
     conn.close()
@@ -82,17 +82,25 @@ def remove_jobs():
 load_jobs()
 scheduler.start()
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('localhost', init_config['port']))
-    s.listen()
-    conn, addr = s.accept()
-    while True:
-        msg = conn.recv(1024).decode('ascii')
+while True:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('localhost', init_config['port']))
+        s.listen()
+        conn, addr = s.accept()
+        with conn:
+            data = conn.recv(1024)
+            if not data:
+                continue
 
-        if msg == 'close':
-            scheduler.shutdown()
-            exit()
-        elif msg == 'update':
-            remove_jobs()
-            load_jobs()
+            msg = data.decode('ascii')
+            if msg == 'close':
+                scheduler.shutdown()
+                exit()
+            elif msg == 'update':
+                remove_jobs()
+                load_jobs()
+            elif msg == 'dump':
+                job_list = list(jobs.items())
+                job_list.sort(key=lambda job: job[1]['job'].next_run_time)
+                for key, value in job_list:
+                    print('Job for item #' + key + ' scheduled to run at ' + str(value['job'].next_run_time) + ' | ' + str(value['listing']['name'] + ' | Max Bid: ' + str(value['listing']['max_bid'])))
