@@ -30,6 +30,7 @@ class SniperCLI(object):
 List of sniper commands:
     start   Initializes the sniping background process
     stop    Terminates the sniping background process
+    restart Terminates then initialized the sniping background process
     status  Prints the status of the sniping background process
     create  Adds and schedules a specified item to be sniped
     delete  Stops a specified item from being sniped
