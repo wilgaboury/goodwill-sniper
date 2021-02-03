@@ -6,5 +6,5 @@ CREATE TABLE listings (
 );
 
 CREATE TABLE process (
-    pid BIGINT
+    pid BIGINT UNIQUE
 );
