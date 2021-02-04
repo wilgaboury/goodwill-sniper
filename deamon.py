@@ -5,6 +5,7 @@ import pause
 import utils
 import math
 import socket
+import time
 from dateutil.parser import parse
 from multiprocessing.connection import Listener
 from selenium.webdriver import Firefox
@@ -24,6 +25,8 @@ def perform_snipe(item_id, max_bid, listing_dt):
         driver = Firefox()
         driver.get('https://www.shopgoodwill.com/SignIn')
 
+        driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
+
         username_input = driver.find_element_by_id('Username')
         username_input.send_keys(init_config['username'])
         password_input = driver.find_element_by_id('Password')
@@ -31,8 +34,6 @@ def perform_snipe(item_id, max_bid, listing_dt):
         driver.find_element_by_id('login-submit').click()
 
         driver.get('https://www.shopgoodwill.com/Item/' + str(item_id))
-
-        driver.find_element_by_css_selector('.cc-btn.cc-dismiss').click()
 
         minimum_bid = float(driver.find_element_by_css_selector('.minimum-bid').get_attribute('innerHTML')[1:])
         bid_amount = math.ceil(minimum_bid)
