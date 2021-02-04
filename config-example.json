@@ -1,6 +1,6 @@
 {
     "username": "username",
     "password": "password",
-    "bid_before_seconds": 30,
+    "bid_before_seconds": 45,
     "port": 40389
 }
