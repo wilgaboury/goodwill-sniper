@@ -130,11 +130,12 @@ List of sniper commands:
     def delete(self):
         parser = argparse.ArgumentParser(description='Delete an item from sniping list')
         required = parser.add_argument_group('required named arguments')
-        required.add_argument('-i', '--item', action='store', type=int, required=True)
+        required.add_argument('-i', '--item', nargs='+', action='store', type=int, required=True)
         args = parser.parse_args(sys.argv[2:])
 
         conn, c = utils.get_conn()
-        c.execute('DELETE FROM listings WHERE item_id=?', (args.item,))
+        for item in args.item:
+            c.execute('DELETE FROM listings WHERE item_id=?', (item,))
         conn.commit()
         c.close()
         conn.close()
