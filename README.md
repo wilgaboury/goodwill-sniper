@@ -2,9 +2,13 @@
 
 This is a command line tool for sniping auctions on the goodwill website (https://www.shopgoodwill.com/)
 
+## Usage
+
+Using the command line go to the location that this code was downloaded and type 'python sniper.py [args]' in order to use
+
 ## Explination of config.json
 
-Make a copy of config-example.json names config.json in order for program to run.
+Make a copy of config-example.json named config.json in order for program to run.
 
 * username ~ your username for the shop goodwill website
 * password ~ your password for the shop goodwill website
